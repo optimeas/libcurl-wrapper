@@ -16,6 +16,7 @@ public:
     CurlHolder& operator=(const CurlHolder &other) = delete;
 
     CURL* handle{nullptr};
+    struct curl_slist* requestHeader{nullptr};
 
 private:
     static std::mutex& curl_easy_init_mutex();

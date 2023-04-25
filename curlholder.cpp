@@ -22,6 +22,7 @@ CurlHolder::CurlHolder()
 CurlHolder::~CurlHolder()
 {
     curl_easy_cleanup(handle);
+    curl_slist_free_all(requestHeader);
 }
 
 std::mutex &CurlHolder::curl_easy_init_mutex()

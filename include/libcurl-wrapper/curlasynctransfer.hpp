@@ -48,10 +48,12 @@ public:
     std::vector<char> &responseData();
     void setOutputFilename(const std::string& fileNameWithPath);
 
+    void setHeader(const std::string &name, const std::string &content);
+    void clearHeaders();
+
     // These two functions are called from CurlMultiAsync
     virtual void prepareTransfer();
     virtual void processResponse(AsyncResult asyncResult, CURLcode curlResult);
-
 
 private:
     static size_t staticOnProgressCallback(void *token, curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
@@ -75,6 +77,7 @@ private:
     long m_responseCode{-1};
     std::string m_outputFileName;
     std::ofstream m_outputFile;
+    std::unordered_map<std::string, std::string> m_requestHeaders;
 };
 
 }

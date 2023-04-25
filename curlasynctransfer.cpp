@@ -87,6 +87,17 @@ void CurlAsyncTransfer::setOutputFilename(const std::string &fileNameWithPath)
     m_outputFileName = fileNameWithPath;
 }
 
+void CurlAsyncTransfer::setHeader(const std::string &name, const std::string &content)
+{
+    auto headerName = cu::simpleCase(name);
+    m_requestHeaders[headerName] = content;
+}
+
+void CurlAsyncTransfer::clearHeaders()
+{
+    m_requestHeaders.clear();
+}
+
 unsigned int CurlAsyncTransfer::progressTimeout_s() const
 {
     return m_progressTimeout_s;
@@ -122,6 +133,25 @@ void CurlAsyncTransfer::prepareTransfer()
             return;
         }
     }
+
+    curl_slist_free_all(m_curl.requestHeader);
+    m_curl.requestHeader = nullptr;
+    for(const auto& [name, value] : m_requestHeaders)
+    {
+        std::string header;
+        if(value.size() == 0)
+            header = fmt::format("{}:", name);
+        else
+            header = fmt::format("{}: {}", name, value);
+
+        m_curl.requestHeader = curl_slist_append(m_curl.requestHeader, header.c_str());
+    }
+
+    // libcurl would prepare the header "Expect: 100-continue" by default when uploading files larger than 1 MB.
+    // Here we would like to disable this feature:
+    m_curl.requestHeader = curl_slist_append(m_curl.requestHeader, "Expect:");
+
+    curl_easy_setopt(m_curl.handle, CURLOPT_HTTPHEADER, m_curl.requestHeader);
 
     m_responseCode = -1;
     m_asyncResult = RUNNING;
