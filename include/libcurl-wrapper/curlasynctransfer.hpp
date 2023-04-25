@@ -51,6 +51,9 @@ public:
     void setHeader(const std::string &name, const std::string &content);
     void clearHeaders();
 
+    void setUploadFilename(const std::string& fileNameWithPath);
+    void setUploadDataPointer(const char *data,  long size = -1, bool copyData=false);
+
     // These two functions are called from CurlMultiAsync
     virtual void prepareTransfer();
     virtual void processResponse(AsyncResult asyncResult, CURLcode curlResult);
@@ -70,14 +73,16 @@ private:
     TransferCallback m_transferCallback;
     std::chrono::steady_clock::time_point m_timepointTransferBegin;
     std::chrono::steady_clock::time_point m_timepointLastProgress;
-    unsigned int m_progressTimeout_s;
-    unsigned int m_maxTransferDuration_s;
+    unsigned int m_progressTimeout_s{300};
+    unsigned int m_maxTransferDuration_s{0};
     std::unordered_map<std::string, std::string> m_responseHeaders;
     std::vector<char> m_responseData;
     long m_responseCode{-1};
     std::string m_outputFileName;
     std::ofstream m_outputFile;
     std::unordered_map<std::string, std::string> m_requestHeaders;
+    std::string m_uploadFileName;
+    FILE *m_uploadFileHandle{nullptr};
 };
 
 }

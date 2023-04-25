@@ -12,8 +12,6 @@ namespace curl
 
 CurlAsyncTransfer::CurlAsyncTransfer(const cu::Logger &logger)
     : m_logger(logger)
-    , m_progressTimeout_s(300)
-    , m_maxTransferDuration_s(0)
 {
 }
 
@@ -98,6 +96,22 @@ void CurlAsyncTransfer::clearHeaders()
     m_requestHeaders.clear();
 }
 
+void CurlAsyncTransfer::setUploadFilename(const std::string &fileNameWithPath)
+{
+    m_uploadFileName = fileNameWithPath;
+}
+
+void CurlAsyncTransfer::setUploadDataPointer(const char *data, long size, bool copyData)
+{
+    if(size != -1)
+        curl_easy_setopt(m_curl.handle, CURLOPT_POSTFIELDSIZE, size);
+
+    if(copyData)
+        curl_easy_setopt(m_curl.handle, CURLOPT_COPYPOSTFIELDS, data);
+    else
+        curl_easy_setopt(m_curl.handle, CURLOPT_POSTFIELDS, data);
+}
+
 unsigned int CurlAsyncTransfer::progressTimeout_s() const
 {
     return m_progressTimeout_s;
@@ -128,10 +142,27 @@ void CurlAsyncTransfer::prepareTransfer()
         m_outputFile.open(m_outputFileName, std::ios::out | std::ios::binary | std::ios::trunc);
         if(!m_outputFile.is_open())
         {
-            //TODO: error handling => callback
+            //TODO: error handling => callback ?
             m_logger->error("file open error");
             return;
         }
+    }
+
+    if(!m_uploadFileName.empty())
+    {
+        m_uploadFileHandle = std::fopen(m_uploadFileName.c_str(), "r");
+        if(m_uploadFileHandle == nullptr)
+        {
+            //TODO: error handling => callback ?
+            m_logger->error("file open error");
+            return;
+        }
+
+        curl_easy_setopt(m_curl.handle, CURLOPT_POST, 1L);
+        curl_easy_setopt(m_curl.handle, CURLOPT_READDATA, m_uploadFileHandle);
+        curl_easy_setopt(m_curl.handle, CURLOPT_READFUNCTION , nullptr);
+        // If you set this callback pointer to NULL, or do not set it at all, the default internal read function will be used.
+        // It is doing an fread() on the FILE * userdata set with CURLOPT_READDATA.
     }
 
     curl_slist_free_all(m_curl.requestHeader);
@@ -176,6 +207,12 @@ void CurlAsyncTransfer::processResponse(AsyncResult asyncResult, CURLcode curlRe
     {
         if(curl_easy_getinfo(m_curl.handle, CURLINFO_RESPONSE_CODE, &m_responseCode) != CURLE_OK)
             m_responseCode = -1;
+    }
+
+    if(m_uploadFileHandle != nullptr)
+    {
+        fclose(m_uploadFileHandle);
+        m_uploadFileHandle = nullptr;
     }
 
     if(m_transferCallback)
