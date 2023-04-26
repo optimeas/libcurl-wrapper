@@ -87,9 +87,9 @@ void CurlHttpTransfer::prepareTransfer()
         m_outputFile.open(m_outputFileName, std::ios::out | std::ios::binary | std::ios::trunc);
         if(!m_outputFile.is_open())
         {
-            //TODO: error handling => callback ?
-            m_logger->error("file open error");
-            return;
+            std::string errMsg = fmt::format("failed to open output file {}", m_outputFileName);
+            m_logger->error(errMsg);
+            throw std::runtime_error(errMsg);
         }
     }
 
@@ -98,9 +98,9 @@ void CurlHttpTransfer::prepareTransfer()
         m_uploadFileHandle = std::fopen(m_uploadFileName.c_str(), "r");
         if(m_uploadFileHandle == nullptr)
         {
-            //TODO: error handling => callback ?
-            m_logger->error("file open error");
-            return;
+            std::string errMsg = fmt::format("failed to open upload file {}", m_uploadFileName);
+            m_logger->error(errMsg);
+            throw std::runtime_error(errMsg);
         }
 
         curl_easy_setopt(m_curl.handle, CURLOPT_POST, 1L);
