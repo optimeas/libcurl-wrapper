@@ -2,12 +2,14 @@ project(libcurl-wrapper)
 
 set(HEADERS
         include/libcurl-wrapper/curlasynctransfer.hpp
+        include/libcurl-wrapper/curlhttptransfer.hpp
         include/libcurl-wrapper/curlholder.hpp
         include/libcurl-wrapper/curlmultiasync.hpp
 )
 
 set(SOURCES
         curlasynctransfer.cpp
+        curlhttptransfer.cpp
         curlholder.cpp
         curlmultiasync.cpp
 )

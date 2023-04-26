@@ -32,7 +32,7 @@ CurlMultiAsync::~CurlMultiAsync()
 void CurlMultiAsync::performTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
     m_logger->debug(fmt::format("start transfer [{}]", transfer->curl().handle));
-    transfer->prepareTransfer();
+    transfer->_prepareTransfer();
     curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
 
     m_runningTransfers([&](auto &vec)
@@ -45,7 +45,7 @@ void CurlMultiAsync::cancelTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
     m_logger->debug(fmt::format("cancel transfer [{}]", transfer->curl().handle));
     removeTransferFromRunningTransfers(transfer->curl().handle);
-    transfer->processResponse(CANCELED, CURL_LAST);
+    transfer->_processResponse(CANCELED, CURL_LAST);
     curl_multi_remove_handle(m_multiHandle, transfer->curl().handle);
 }
 
@@ -57,7 +57,7 @@ void CurlMultiAsync::cancelAllTransfers()
         while(transferIterator != vec.end())
         {
             m_logger->debug(fmt::format("cancel transfer [{}]", (*transferIterator)->curl().handle));
-            (*transferIterator)->processResponse(CANCELED, CURL_LAST);
+            (*transferIterator)->_processResponse(CANCELED, CURL_LAST);
             curl_multi_remove_handle(m_multiHandle, (*transferIterator)->curl().handle);
             transferIterator = vec.erase(transferIterator); // erase will increment the iterator
         }
@@ -133,7 +133,7 @@ void CurlMultiAsync::handleMultiStackMessages()
             auto asyncTransfer = removeTransferFromRunningTransfers(curlMessage->easy_handle);
 
             if(asyncTransfer)
-                asyncTransfer->processResponse(CURL_DONE, curlMessage->data.result);
+                asyncTransfer->_processResponse(CURL_DONE, curlMessage->data.result);
 
             curl_multi_remove_handle(m_multiHandle, curlMessage->easy_handle);
             // WARNING: CURLMsg *curlMessage is no longer valid after curl_multi_remove_handle()

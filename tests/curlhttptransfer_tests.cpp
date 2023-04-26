@@ -1,6 +1,6 @@
 #include "httpmockserver/httpmockserver.hpp"
 #include "libcurl-wrapper/curlmultiasync.hpp"
-#include "libcurl-wrapper/curlasynctransfer.hpp"
+#include "libcurl-wrapper/curlhttptransfer.hpp"
 #include "cpp-utils/loggingstdout.hpp"
 
 #include <fmt/core.h>
@@ -28,7 +28,7 @@ TEST(CurlAsyncTransfer, Get)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 
@@ -82,7 +82,7 @@ TEST(CurlAsyncTransfer, Post)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 
@@ -91,7 +91,7 @@ TEST(CurlAsyncTransfer, Post)
     transfer->setHeader("content-description", "Message-ID: 4711");
     transfer->setHeader("content-description", "Message-ID: 4712"); // test overwrite with different value
     transfer->setHeader("Content-Type", "application/json");
-    transfer->setUploadDataPointer(content.c_str());
+    transfer->setPostData(content.c_str());
 
     curlMultiAsync.performTransfer(transfer);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
@@ -144,7 +144,7 @@ TEST(CurlAsyncTransfer, PostCopyData)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 
@@ -153,7 +153,7 @@ TEST(CurlAsyncTransfer, PostCopyData)
     transfer->setHeader("content-description", "Message-ID: 4711");
     transfer->setHeader("content-description", "Message-ID: 4712"); // test overwrite with different value
     transfer->setHeader("Content-Type", "application/json");
-    transfer->setUploadDataPointer(content.c_str(), content.size(), true);
+    transfer->setPostData(content.c_str(), content.size(), true);
 
     std::string contentCopy = content;
     std::fill(content.begin(), content.end(), '#');
@@ -217,7 +217,7 @@ TEST(CurlAsyncTransfer, PostFile)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 
@@ -269,7 +269,7 @@ TEST(CurlAsyncTransfer, OutputToFile)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 
@@ -317,7 +317,7 @@ TEST(CurlAsyncTransfer, ProgressTimeout)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 
@@ -356,7 +356,7 @@ TEST(CurlAsyncTransfer, MaxTransferDuration)
     mockServer.start();
     EXPECT_TRUE(mockServer.isRunning());
 
-    auto transfer = std::make_shared<curl::CurlAsyncTransfer>(logger);
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     EXPECT_NE(transfer->curl().handle, nullptr);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::NONE);
 

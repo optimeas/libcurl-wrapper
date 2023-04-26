@@ -6,7 +6,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 set(SOURCES
     curlmultiasync_tests.cpp
-    curlasynctransfer_tests.cpp
+    curlhttptransfer_tests.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

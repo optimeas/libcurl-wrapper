@@ -43,28 +43,17 @@ public:
     void setMaxTransferDuration_s(unsigned int newMaxTransferDuration_s);
 
     long responseCode() const;
-    std::string responseHeader(std::string headerName);
-    std::unordered_map<std::string, std::string> &responseHeaders();
-    std::vector<char> &responseData();
-    void setOutputFilename(const std::string& fileNameWithPath);
 
-    void setHeader(const std::string &name, const std::string &content);
-    void clearHeaders();
-
-    void setUploadFilename(const std::string& fileNameWithPath);
-    void setUploadDataPointer(const char *data,  long size = -1, bool copyData=false);
+    virtual void prepareTransfer() { }
+    virtual void processResponse() { }
 
     // These two functions are called from CurlMultiAsync
-    virtual void prepareTransfer();
-    virtual void processResponse(AsyncResult asyncResult, CURLcode curlResult);
+    void _prepareTransfer();
+    void _processResponse(AsyncResult asyncResult, CURLcode curlResult);
 
-private:
+protected:
     static size_t staticOnProgressCallback(void *token, curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
     size_t onProgressCallback(curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
-    static size_t staticOnWriteCallback(char *ptr, size_t size, size_t nmemb, void *token);
-    void onWriteCallback(const char *ptr, size_t realsize);
-    static size_t staticOnHeaderCallback(char *buffer, size_t size, size_t nitems, void *token);
-    void onHeaderCallback(const char *buffer, size_t realsize);
 
     cu::Logger m_logger;
     CurlHolder m_curl;
@@ -75,14 +64,7 @@ private:
     std::chrono::steady_clock::time_point m_timepointLastProgress;
     unsigned int m_progressTimeout_s{300};
     unsigned int m_maxTransferDuration_s{0};
-    std::unordered_map<std::string, std::string> m_responseHeaders;
-    std::vector<char> m_responseData;
     long m_responseCode{-1};
-    std::string m_outputFileName;
-    std::ofstream m_outputFile;
-    std::unordered_map<std::string, std::string> m_requestHeaders;
-    std::string m_uploadFileName;
-    FILE *m_uploadFileHandle{nullptr};
 };
 
 }
