@@ -62,12 +62,7 @@ TEST(CurlAsyncTransfer, Post)
     curl::CurlMultiAsync curlMultiAsync(logger);
 
     std::string url = "/post-url";
-    std::string content;
-
-    content += R"(<?xml version="1.0" encoding="UTF-8"?>\n)";
-    content += R"(<root>\n)";
-    content += R"(    <attention text="File=/sde/preview/20220629/20220629_115750.osfz Tag=preview"/>\n)";
-    content += R"(</root>)";
+    std::string content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<root>\r\n    <attention text=\"File=/sde/preview/20220629/20220629_115750.osfz Tag=preview\"/>\r\n</root>\r\n";
     std::string response = "<html><body>HttpMockServer</body></html>";
 
     httpmock::HttpMockServer mockServer(port);
@@ -124,12 +119,7 @@ TEST(CurlAsyncTransfer, PostCopyData)
     curl::CurlMultiAsync curlMultiAsync(logger);
 
     std::string url = "/post-url";
-    std::string content;
-
-    content += R"(<?xml version="1.0" encoding="UTF-8"?>\n)";
-    content += R"(<root>\n)";
-    content += R"(    <attention text="File=/sde/preview/20220629/20220629_115750.osfz Tag=preview"/>\n)";
-    content += R"(</root>)";
+    std::string content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<root>\r\n    <attention text=\"File=/sde/preview/20220629/20220629_115750.osfz Tag=preview\"/>\r\n</root>\r\n";
     std::string response = "<html><body>HttpMockServer</body></html>";
 
     httpmock::HttpMockServer mockServer(port);
