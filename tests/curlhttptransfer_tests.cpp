@@ -9,6 +9,25 @@
 extern int port;
 extern cu::Logger logger;
 
+TEST(CurlAsyncTransfer, SslError)
+{
+    curl::CurlMultiAsync curlMultiAsync(logger);
+
+    auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
+    transfer->setUrl("https://expired.badssl.com/");
+    transfer->setSslVerfication(false);
+
+    curlMultiAsync.performTransfer(transfer);
+    EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
+    curlMultiAsync.waitForCompletion();
+
+    EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::CURL_DONE);
+    EXPECT_EQ(transfer->curlResult(), CURLE_OK) << curl_easy_strerror(transfer->curlResult());
+
+    EXPECT_EQ(transfer->responseCode(), 200);
+    EXPECT_TRUE(transfer->responseHeader("Content-Type") == "text/html");
+}
+
 TEST(CurlAsyncTransfer, Get)
 {
     curl::CurlMultiAsync curlMultiAsync(logger);
