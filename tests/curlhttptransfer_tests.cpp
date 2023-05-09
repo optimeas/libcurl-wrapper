@@ -6,8 +6,31 @@
 #include <fmt/core.h>
 #include <gmock/gmock.h>
 
+#include <filesystem>
+#include <unistd.h>
+
 extern int port;
 extern cu::Logger logger;
+
+// avoid linker warnings like: the use of `tmpnam' is dangerous, better use `mkstemp'
+std::string generateUniqueTemporaryFilename(void)
+{
+    std::string executableName;
+    std::ifstream("/proc/self/comm") >> executableName;
+    executableName += "XXXXXX";
+
+    int fd = mkstemp(executableName.data());
+
+    std::string symlink = fmt::format("/proc/{}/fd/{}", getpid(), fd);
+    std::filesystem::path symlinkPath{symlink};
+
+    std::string filename = std::filesystem::read_symlink(symlinkPath);
+
+    close(fd);
+    std::remove(filename.c_str());
+
+    return filename;
+}
 
 TEST(CurlAsyncTransfer, SslError)
 {
@@ -209,7 +232,7 @@ TEST(CurlAsyncTransfer, PostFile)
         content += alphabet[rand() % (sizeof(alphabet) - 1)];
     EXPECT_EQ(content.size(), len);
 
-    std::string filename = tmpnam(nullptr); // cppcheck-suppress tmpnamCalled
+    std::string filename = generateUniqueTemporaryFilename();
     std::ofstream outfile (filename, std::ofstream::binary);
     outfile.write (content.data(), content.size());
     outfile.close();
@@ -285,7 +308,7 @@ TEST(CurlAsyncTransfer, OutputToFile)
     std::string requestUrl = "http://127.0.0.1:" + std::to_string(port) + url;
     transfer->setUrl(requestUrl);
 
-    std::string filename = tmpnam(nullptr); // cppcheck-suppress tmpnamCalled
+    std::string filename = generateUniqueTemporaryFilename();
     transfer->setOutputFilename(filename);
 
     curlMultiAsync.performTransfer(transfer);
