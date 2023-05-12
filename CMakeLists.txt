@@ -5,6 +5,9 @@ set(HEADERS
         include/libcurl-wrapper/curlhttptransfer.hpp
         include/libcurl-wrapper/curlholder.hpp
         include/libcurl-wrapper/curlmultiasync.hpp
+        include/libcurl-wrapper/tracing.hpp
+        include/libcurl-wrapper/tracefile.hpp
+        include/libcurl-wrapper/traceconfiguration.hpp
 )
 
 set(SOURCES
@@ -12,6 +15,8 @@ set(SOURCES
         curlhttptransfer.cpp
         curlholder.cpp
         curlmultiasync.cpp
+        tracefile.cpp
+        traceconfiguration.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})

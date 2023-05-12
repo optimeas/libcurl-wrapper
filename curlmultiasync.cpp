@@ -31,10 +31,12 @@ CurlMultiAsync::~CurlMultiAsync()
 
 void CurlMultiAsync::performTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
-    m_logger->debug(fmt::format("start transfer [{}]", transfer->curl().handle));
-    transfer->_prepareTransfer();
-    curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
+    if(m_traceConfiguration)
+        m_traceConfiguration->configureTracing(transfer);
 
+    transfer->_prepareTransfer();
+
+    curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
     m_runningTransfers([&](auto &vec)
     {
         vec.emplace_back(std::move(transfer));
@@ -43,7 +45,6 @@ void CurlMultiAsync::performTransfer(std::shared_ptr<CurlAsyncTransfer> transfer
 
 void CurlMultiAsync::cancelTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
-    m_logger->debug(fmt::format("cancel transfer [{}]", transfer->curl().handle));
     removeTransferFromRunningTransfers(transfer->curl().handle);
     transfer->_processResponse(CANCELED, CURL_LAST);
     curl_multi_remove_handle(m_multiHandle, transfer->curl().handle);
@@ -56,7 +57,6 @@ void CurlMultiAsync::cancelAllTransfers()
         auto transferIterator = vec.begin();
         while(transferIterator != vec.end())
         {
-            m_logger->debug(fmt::format("cancel transfer [{}]", (*transferIterator)->curl().handle));
             (*transferIterator)->_processResponse(CANCELED, CURL_LAST);
             curl_multi_remove_handle(m_multiHandle, (*transferIterator)->curl().handle);
             transferIterator = vec.erase(transferIterator); // erase will increment the iterator
@@ -66,7 +66,6 @@ void CurlMultiAsync::cancelAllTransfers()
 
 void CurlMultiAsync::waitForCompletion()
 {
-    m_logger->debug("waitForCompletion ...");
     for(;;)
     {
         int runningTransfers = m_runningTransfers([&](auto &vec){ return vec.size();});
@@ -75,8 +74,6 @@ void CurlMultiAsync::waitForCompletion()
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
-    m_logger->debug("waitForCompletion finished");
 }
 
 void CurlMultiAsync::threadedFunction()
@@ -129,7 +126,6 @@ void CurlMultiAsync::handleMultiStackMessages()
     {
         if(curlMessage->msg == CURLMSG_DONE)
         {
-            m_logger->debug(fmt::format("finished transfer [{}]", curlMessage->easy_handle));
             auto asyncTransfer = removeTransferFromRunningTransfers(curlMessage->easy_handle);
 
             if(asyncTransfer)
@@ -188,6 +184,11 @@ std::shared_ptr<CurlAsyncTransfer> CurlMultiAsync::removeTransferFromRunningTran
 
         return transfer;
     });
+}
+
+void CurlMultiAsync::setTraceConfiguration(std::shared_ptr<TraceConfigurationInterface> newTraceConfiguration)
+{
+    m_traceConfiguration = newTraceConfiguration;
 }
 
 }

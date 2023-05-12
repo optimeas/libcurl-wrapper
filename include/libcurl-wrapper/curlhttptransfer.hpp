@@ -25,6 +25,8 @@ public:
     virtual void prepareTransfer() override;
     virtual void processResponse() override;
 
+    void setFollowRedirects(bool newFollowRedirects);
+
 private:
     static size_t staticOnWriteCallback(char *ptr, size_t size, size_t nmemb, void *token);
     void onWriteCallback(const char *ptr, size_t realsize);
@@ -38,6 +40,7 @@ private:
     std::unordered_map<std::string, std::string> m_requestHeaders;
     std::string m_uploadFileName;
     FILE *m_uploadFileHandle{nullptr};
+    bool m_followRedirects{false};
 };
 
 }

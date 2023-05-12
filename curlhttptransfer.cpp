@@ -126,8 +126,15 @@ void CurlHttpTransfer::prepareTransfer()
     // libcurl would prepare the header "Expect: 100-continue" by default when uploading files larger than 1 MB.
     // Here we would like to disable this feature:
     m_curl.requestHeader = curl_slist_append(m_curl.requestHeader, "Expect:");
-
     curl_easy_setopt(m_curl.handle, CURLOPT_HTTPHEADER, m_curl.requestHeader);
+
+    if(m_followRedirects)
+    {
+        curl_easy_setopt(m_curl.handle, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(m_curl.handle, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
+    }
+    else
+        curl_easy_setopt(m_curl.handle, CURLOPT_FOLLOWLOCATION, 0L);
 }
 
 void CurlHttpTransfer::processResponse()
@@ -226,6 +233,11 @@ void CurlHttpTransfer::onHeaderCallback(const char *buffer, size_t realsize)
             m_responseHeaders["HTTP-Version"] = results.at(0);
         }
     }
+}
+
+void CurlHttpTransfer::setFollowRedirects(bool newFollowRedirects)
+{
+    m_followRedirects = newFollowRedirects;
 }
 
 }

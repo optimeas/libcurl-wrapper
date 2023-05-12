@@ -1,6 +1,7 @@
 #pragma once
 
 #include "curlasynctransfer.hpp"
+#include "tracing.hpp"
 
 #include "cpp-utils/logging.hpp"
 #include "cpp-utils/monitor.hpp"
@@ -24,6 +25,8 @@ public:
 
     void waitForCompletion();
 
+    void setTraceConfiguration(std::shared_ptr<TraceConfigurationInterface> newTraceConfiguration);
+
 private:
     void threadedFunction(void);
 
@@ -39,6 +42,8 @@ private:
     CURLM *m_multiHandle{nullptr};
 
     cu::Monitor<std::vector<std::shared_ptr<CurlAsyncTransfer>>> m_runningTransfers;
+    std::shared_ptr<TraceConfigurationInterface> m_traceConfiguration;
+
 };
 
 }

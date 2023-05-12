@@ -3,6 +3,7 @@
 #include "cpp-utils/logging.hpp"
 
 #include "curlholder.hpp"
+#include "tracing.hpp"
 
 #include <functional>
 #include <chrono>
@@ -53,9 +54,13 @@ public:
     void _prepareTransfer();
     void _processResponse(AsyncResult asyncResult, CURLcode curlResult);
 
+    void setTracing(std::unique_ptr<TracingInterface> newTracing);
+
 protected:
     static size_t staticOnProgressCallback(void *token, curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
     size_t onProgressCallback(curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
+    static int staticOnDebugCallback(CURL *handle, curl_infotype type, char *data, size_t size, void *token);
+    int onDebugCallback(CURL *handle, curl_infotype type, char *data, size_t size);
 
     cu::Logger m_logger;
     CurlHolder m_curl;
@@ -67,6 +72,7 @@ protected:
     unsigned int m_progressTimeout_s{300};
     unsigned int m_maxTransferDuration_s{0};
     long m_responseCode{-1};
+    std::unique_ptr<TracingInterface> m_tracing;
 };
 
 }
