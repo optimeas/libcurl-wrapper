@@ -80,9 +80,20 @@ void CurlMultiAsync::threadedFunction()
 {
     while(m_threadKeepRunning)
     {
-        int runningTransfers = m_runningTransfers([&](auto &vec){ return vec.size();});
-        if(runningTransfers > 0)
-            handleMultiStackTransfers();
+        try
+        {
+            int runningTransfers = m_runningTransfers([&](auto &vec){ return vec.size();});
+            if(runningTransfers > 0)
+                handleMultiStackTransfers();
+        }
+        catch(std::exception& e)
+        {
+             m_logger->error(fmt::format("C++ exception occurred: {}", e.what()));
+        }
+        catch(...)
+        {
+            m_logger->error("C++ exception occurred: unknown exception class");
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
