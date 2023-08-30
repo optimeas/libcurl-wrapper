@@ -56,6 +56,10 @@ public:
 
     void setTracing(std::unique_ptr<TracingInterface> newTracing);
 
+    float transferDuration_s() const;
+    uint64_t transferSpeed_BytesPerSecond() const;
+    uint64_t transferredBytes() const;
+
 protected:
     static size_t staticOnProgressCallback(void *token, curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
     size_t onProgressCallback(curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
@@ -73,6 +77,9 @@ protected:
     unsigned int m_maxTransferDuration_s{0};
     long m_responseCode{-1};
     std::unique_ptr<TracingInterface> m_tracing;
+    float m_transferDuration_s{0.0};
+    uint64_t m_transferSpeed_BytesPerSecond{0};
+    uint64_t m_transferredBytes{0};
 };
 
 }

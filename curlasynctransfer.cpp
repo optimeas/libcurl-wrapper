@@ -106,6 +106,10 @@ void CurlAsyncTransfer::_prepareTransfer()
 
     prepareTransfer();
 
+    m_transferDuration_s = 0.0;
+    m_transferredBytes = 0;
+    m_transferSpeed_BytesPerSecond = 0;
+
     m_responseCode = -1;
     m_asyncResult = RUNNING;
     m_timepointTransferBegin = std::chrono::steady_clock::now();
@@ -128,11 +132,23 @@ void CurlAsyncTransfer::_processResponse(AsyncResult asyncResult, CURLcode curlR
             m_responseCode = -1;
     }
 
+    curl_off_t uploadSpeed, downloadSpeed, uploadSize, downloadSize;
+    curl_easy_getinfo(m_curl.handle, CURLINFO_SPEED_UPLOAD_T,   &uploadSpeed);
+    curl_easy_getinfo(m_curl.handle, CURLINFO_SPEED_DOWNLOAD_T, &downloadSpeed);
+    curl_easy_getinfo(m_curl.handle, CURLINFO_SIZE_UPLOAD_T,    &uploadSize);
+    curl_easy_getinfo(m_curl.handle, CURLINFO_SIZE_DOWNLOAD_T,  &downloadSize);
+    m_transferredBytes += downloadSize + uploadSize;
+    m_transferSpeed_BytesPerSecond = std::max(uploadSpeed, downloadSpeed);
+
     if(m_tracing)
     {
         m_tracing->finalize();
         m_tracing.reset(); // do not overwrite the trace file if the transfer object is reused
     }
+
+    auto now = std::chrono::steady_clock::now();
+    std::chrono::duration<float> diff = now - m_timepointTransferBegin;
+    m_transferDuration_s = diff.count();
 
     processResponse();
 
@@ -151,6 +167,7 @@ size_t CurlAsyncTransfer::staticOnProgressCallback(void *token, curl_off_t downl
 size_t CurlAsyncTransfer::onProgressCallback([[maybe_unused]] curl_off_t downloadTotal, curl_off_t downloadNow, [[maybe_unused]] curl_off_t uploadTotal, curl_off_t uploadNow)
 {
     auto now = std::chrono::steady_clock::now();
+
     if((downloadNow != 0) || (uploadNow != 0))
         m_timepointLastProgress = now;
 
@@ -188,6 +205,21 @@ int CurlAsyncTransfer::onDebugCallback(CURL *handle, curl_infotype type, char *d
         m_tracing->traceCurlDebugInfo(handle, type, data, size);
 
     return 0;
+}
+
+uint64_t CurlAsyncTransfer::transferSpeed_BytesPerSecond() const
+{
+    return m_transferSpeed_BytesPerSecond;
+}
+
+uint64_t CurlAsyncTransfer::transferredBytes() const
+{
+    return m_transferredBytes;
+}
+
+float CurlAsyncTransfer::transferDuration_s() const
+{
+    return m_transferDuration_s;
 }
 
 void CurlAsyncTransfer::setTracing(std::unique_ptr<TracingInterface> newTracing)
