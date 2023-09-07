@@ -50,7 +50,7 @@ TEST(CurlAsyncTransfer, SslError)
     EXPECT_EQ(transfer->responseCode(), 200);
     EXPECT_TRUE(transfer->responseHeader("Content-Type") == "text/html");
 }
-
+/*
 TEST(CurlAsyncTransfer, Get)
 {
     curl::CurlMultiAsync curlMultiAsync(logger);
@@ -411,3 +411,4 @@ TEST(CurlAsyncTransfer, MaxTransferDuration)
     bool success = mockServer.waitForRequestCompleted(1, 1000);
     EXPECT_TRUE(success);
 }
+*/

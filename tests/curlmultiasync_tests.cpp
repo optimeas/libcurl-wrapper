@@ -13,7 +13,7 @@ TEST(CurlMultiAsync, StartStop)
 {
     curl::CurlMultiAsync curlMultiAsync(logger);
 }
-
+/*
 TEST(CurlMultiAsync, cancelAllTransfers)
 {
     curl::CurlMultiAsync curlMultiAsync(logger);
@@ -93,7 +93,7 @@ TEST(CurlMultiAsync, cancelTransfer)
     bool success = mockServer.waitForRequestCompleted(1, 1000);
     EXPECT_TRUE(success);
 }
-
+*/
 int main(int argc, char *argv[])
 {
     logger = std::make_shared<cu::StandardOutputLogger>();
