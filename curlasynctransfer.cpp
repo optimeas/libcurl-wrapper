@@ -36,6 +36,14 @@ void CurlAsyncTransfer::setVerifySslCertificates(bool doVerifySslCertificates)
     }
 }
 
+void CurlAsyncTransfer::setReuseExistingConnection(bool doReuseExistingConnection)
+{
+    if(doReuseExistingConnection)
+        curl_easy_setopt(m_curl.handle, CURLOPT_FORBID_REUSE, 0L);
+    else
+        curl_easy_setopt(m_curl.handle, CURLOPT_FORBID_REUSE, 1L);
+}
+
 void CurlAsyncTransfer::setTransferCallback(const TransferCallback &newTransferCallback)
 {
     m_transferCallback = newTransferCallback;

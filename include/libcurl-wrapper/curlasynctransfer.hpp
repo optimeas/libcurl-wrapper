@@ -34,6 +34,7 @@ public:
 
     void setUrl(const std::string &url);
     void setVerifySslCertificates(bool doVerifySslCertificates = true);
+    void setReuseExistingConnection(bool doReuseExistingConnection = true);
 
     void setTransferCallback(const TransferCallback &newTransferCallback);
     CURLcode curlResult() const;
