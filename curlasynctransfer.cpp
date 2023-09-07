@@ -21,9 +21,9 @@ void CurlAsyncTransfer::setUrl(const std::string &url)
     curl_easy_setopt(m_curl.handle, CURLOPT_URL, url.c_str());
 }
 
-void CurlAsyncTransfer::setSslVerification(bool enable)
+void CurlAsyncTransfer::setVerifySslCertificates(bool doVerifySslCertificates)
 {
-    if(enable)
+    if(doVerifySslCertificates)
     {
         curl_easy_setopt(m_curl.handle, CURLOPT_SSL_VERIFYPEER, 1L);
         curl_easy_setopt(m_curl.handle, CURLOPT_SSL_VERIFYHOST, 2L);

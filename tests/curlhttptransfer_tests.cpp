@@ -38,7 +38,7 @@ TEST(CurlAsyncTransfer, SslError)
 
     auto transfer = std::make_shared<curl::CurlHttpTransfer>(logger);
     transfer->setUrl("https://expired.badssl.com/");
-    transfer->setSslVerification(false);
+    transfer->setVerifySslCertificates(false);
 
     curlMultiAsync.performTransfer(transfer);
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);

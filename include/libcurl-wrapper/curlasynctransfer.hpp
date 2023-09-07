@@ -33,7 +33,7 @@ public:
     const CurlHolder &curl() const;
 
     void setUrl(const std::string &url);
-    void setSslVerification(bool enable = true);
+    void setVerifySslCertificates(bool doVerifySslCertificates = true);
 
     void setTransferCallback(const TransferCallback &newTransferCallback);
     CURLcode curlResult() const;
