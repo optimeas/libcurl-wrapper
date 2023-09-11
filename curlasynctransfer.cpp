@@ -121,6 +121,7 @@ void CurlAsyncTransfer::_prepareTransfer()
     m_responseCode = -1;
     m_asyncResult = RUNNING;
     m_timepointTransferBegin = std::chrono::steady_clock::now();
+    m_timepointLastProgressLogEntry = m_timepointTransferBegin;
     m_timepointLastProgress = m_timepointTransferBegin;
 }
 
@@ -179,6 +180,31 @@ size_t CurlAsyncTransfer::onProgressCallback([[maybe_unused]] curl_off_t downloa
     if((downloadNow != 0) || (uploadNow != 0))
         m_timepointLastProgress = now;
 
+    if(m_progressLogging_s > 0)
+    {
+        if(std::chrono::duration_cast<std::chrono::seconds>(now - m_timepointLastProgressLogEntry).count() > m_progressLogging_s)
+        {
+            m_timepointLastProgressLogEntry = now;
+            std::string logEntry = m_logPrefix;
+
+            if(downloadTotal > 0)
+            {
+                int progressValue = float(100.0 / downloadTotal * downloadNow);
+                logEntry += fmt::format("down {}% [{} bytes]", progressValue, downloadNow);
+            }
+
+            if(uploadTotal)
+            {
+                if(downloadTotal != 0)
+                    logEntry += " ";
+
+                int progressValue = float(100.0 / uploadTotal * uploadNow);
+                logEntry += fmt::format("up {}% [{} bytes]", progressValue, uploadNow);
+            }
+            m_logger->info(logEntry);
+        }
+    }
+
     if(std::chrono::duration_cast<std::chrono::seconds>(now - m_timepointLastProgress).count() > m_progressTimeout_s)
     {
         m_logger->error(fmt::format("progress timeout of {} seconds exceeded", m_progressTimeout_s));
@@ -213,6 +239,16 @@ int CurlAsyncTransfer::onDebugCallback(CURL *handle, curl_infotype type, char *d
         m_tracing->traceCurlDebugInfo(handle, type, data, size);
 
     return 0;
+}
+
+void CurlAsyncTransfer::setLogPrefix(const std::string &newLogPrefix)
+{
+    m_logPrefix = newLogPrefix;
+}
+
+void CurlAsyncTransfer::setProgressLogging_s(unsigned int newProgressLogging_s)
+{
+    m_progressLogging_s = newProgressLogging_s;
 }
 
 uint64_t CurlAsyncTransfer::transferSpeed_BytesPerSecond() const

@@ -61,6 +61,9 @@ public:
     uint64_t transferSpeed_BytesPerSecond() const;
     uint64_t transferredBytes() const;
 
+    void setProgressLogging_s(unsigned int newProgressLogging_s);
+    void setLogPrefix(const std::string &newLogPrefix);
+
 protected:
     static size_t staticOnProgressCallback(void *token, curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
     size_t onProgressCallback(curl_off_t downloadTotal, curl_off_t downloadNow, curl_off_t uploadTotal, curl_off_t uploadNow);
@@ -74,13 +77,16 @@ protected:
     TransferCallback m_transferCallback;
     std::chrono::steady_clock::time_point m_timepointTransferBegin;
     std::chrono::steady_clock::time_point m_timepointLastProgress;
+    std::chrono::steady_clock::time_point m_timepointLastProgressLogEntry;
     unsigned int m_progressTimeout_s{300};
+    unsigned int m_progressLogging_s{0};
     unsigned int m_maxTransferDuration_s{0};
     long m_responseCode{-1};
     std::unique_ptr<TracingInterface> m_tracing;
     float m_transferDuration_s{0.0};
     uint64_t m_transferSpeed_BytesPerSecond{0};
     uint64_t m_transferredBytes{0};
+    std::string m_logPrefix;
 };
 
 }
