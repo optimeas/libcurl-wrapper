@@ -8,7 +8,7 @@ set(HEADERS
         include/libcurl-wrapper/tracing.hpp
         include/libcurl-wrapper/tracefile.hpp
         include/libcurl-wrapper/traceconfiguration.hpp
-        include/libcurl-wrapper/urlutils.hpp
+        include/libcurl-wrapper/curlurl.hpp
 )
 
 set(SOURCES
@@ -18,7 +18,7 @@ set(SOURCES
         curlmultiasync.cpp
         tracefile.cpp
         traceconfiguration.cpp
-        urlutils.cpp
+        curlurl.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
