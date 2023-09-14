@@ -85,7 +85,9 @@ protected:
     std::unique_ptr<TracingInterface> m_tracing;
     float m_transferDuration_s{0.0};
     uint64_t m_transferSpeed_BytesPerSecond{0};
-    uint64_t m_transferredBytes{0};
+    curl_off_t m_downloadedBytes{0};
+    curl_off_t m_uploadededBytes{0};
+    curl_off_t m_transferredBytesLastProgress{0};
     std::string m_logPrefix;
 };
 

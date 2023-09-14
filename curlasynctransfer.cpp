@@ -115,8 +115,10 @@ void CurlAsyncTransfer::_prepareTransfer()
     prepareTransfer();
 
     m_transferDuration_s = 0.0;
-    m_transferredBytes = 0;
+    m_uploadededBytes = 0;
+    m_downloadedBytes = 0;
     m_transferSpeed_BytesPerSecond = 0;
+    m_transferredBytesLastProgress = 0;
 
     m_responseCode = -1;
     m_asyncResult = RUNNING;
@@ -141,12 +143,9 @@ void CurlAsyncTransfer::_processResponse(AsyncResult asyncResult, CURLcode curlR
             m_responseCode = -1;
     }
 
-    curl_off_t uploadSpeed, downloadSpeed, uploadSize, downloadSize;
+    curl_off_t uploadSpeed, downloadSpeed;
     curl_easy_getinfo(m_curl.handle, CURLINFO_SPEED_UPLOAD_T,   &uploadSpeed);
     curl_easy_getinfo(m_curl.handle, CURLINFO_SPEED_DOWNLOAD_T, &downloadSpeed);
-    curl_easy_getinfo(m_curl.handle, CURLINFO_SIZE_UPLOAD_T,    &uploadSize);
-    curl_easy_getinfo(m_curl.handle, CURLINFO_SIZE_DOWNLOAD_T,  &downloadSize);
-    m_transferredBytes += downloadSize + uploadSize;
     m_transferSpeed_BytesPerSecond = std::max(uploadSpeed, downloadSpeed);
 
     if(m_tracing)
@@ -175,16 +174,23 @@ size_t CurlAsyncTransfer::staticOnProgressCallback(void *token, curl_off_t downl
 
 size_t CurlAsyncTransfer::onProgressCallback([[maybe_unused]] curl_off_t downloadTotal, curl_off_t downloadNow, [[maybe_unused]] curl_off_t uploadTotal, curl_off_t uploadNow)
 {
+    // While data is being transferred it gets called frequently, and during slow periods like WHEN NOTHING IS BEING TRANSFERRED it can slow down to about ONE CALL PER SECOND.
     auto now = std::chrono::steady_clock::now();
 
-    if((downloadNow != 0) || (uploadNow != 0))
+    if((downloadNow > m_downloadedBytes) || (uploadNow > m_uploadededBytes))
+    {
+        // we have real progress
         m_timepointLastProgress = now;
+    }
 
     if(m_progressLogging_s > 0)
     {
-        if(std::chrono::duration_cast<std::chrono::seconds>(now - m_timepointLastProgressLogEntry).count() > m_progressLogging_s)
+        curl_off_t transferredNow = downloadNow + uploadNow;
+        if((std::chrono::duration_cast<std::chrono::seconds>(now - m_timepointLastProgressLogEntry).count() > m_progressLogging_s) && (m_transferredBytesLastProgress != transferredNow))
         {
             m_timepointLastProgressLogEntry = now;
+            m_transferredBytesLastProgress  = transferredNow;
+
             std::string logEntry = m_logPrefix;
 
             if(downloadTotal > 0)
@@ -222,6 +228,10 @@ size_t CurlAsyncTransfer::onProgressCallback([[maybe_unused]] curl_off_t downloa
         }
     }
 
+    // save at the end to compare with the next progress call
+    m_downloadedBytes = downloadNow;
+    m_uploadededBytes = uploadNow;
+
     return 0; // all is good
 }
 
@@ -258,7 +268,7 @@ uint64_t CurlAsyncTransfer::transferSpeed_BytesPerSecond() const
 
 uint64_t CurlAsyncTransfer::transferredBytes() const
 {
-    return m_transferredBytes;
+    return m_uploadededBytes + m_downloadedBytes;
 }
 
 float CurlAsyncTransfer::transferDuration_s() const
