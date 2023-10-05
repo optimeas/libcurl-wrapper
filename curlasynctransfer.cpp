@@ -150,6 +150,7 @@ void CurlAsyncTransfer::_processResponse(AsyncResult asyncResult, CURLcode curlR
 
     if(m_tracing)
     {
+        m_tracing->traceMessage(fmt::format("### Response Code: {} ###\n", m_responseCode));
         m_tracing->finalize();
         m_tracing.reset(); // do not overwrite the trace file if the transfer object is reused
     }

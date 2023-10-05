@@ -36,7 +36,15 @@ void CurlMultiAsync::performTransfer(std::shared_ptr<CurlAsyncTransfer> transfer
 
     transfer->_prepareTransfer();
 
-    curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
+    const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
+    CURLMcode mc = curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
+    if(mc != 0)
+    {
+        m_logger->error(fmt::format("curl_multi_add_handle error {}", mc));
+        transfer->_processResponse(CANCELED, CURL_LAST);
+        return;
+    }
+
     m_runningTransfers([&](auto &vec)
     {
         vec.emplace_back(std::move(transfer));
@@ -47,6 +55,7 @@ void CurlMultiAsync::cancelTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
     removeTransferFromRunningTransfers(transfer->curl().handle);
     transfer->_processResponse(CANCELED, CURL_LAST);
+    const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
     curl_multi_remove_handle(m_multiHandle, transfer->curl().handle);
 }
 
@@ -54,6 +63,8 @@ void CurlMultiAsync::cancelAllTransfers()
 {
     m_runningTransfers([&](auto &vec)
     {
+        const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
+
         auto transferIterator = vec.begin();
         while(transferIterator != vec.end())
         {
@@ -106,12 +117,16 @@ void CurlMultiAsync::handleMultiStackTransfers()
     int transfersRunning = 1;
     while(transfersRunning)
     {
-
-        CURLMcode mc = curl_multi_perform(m_multiHandle, &transfersRunning);
-        if(mc != 0)
+        CURLMcode mc;
         {
-            m_logger->error(fmt::format("curl_multi_poll error {}", mc));
-            restartMultiStack();
+            const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
+
+            mc = curl_multi_perform(m_multiHandle, &transfersRunning);
+            if(mc != 0)
+            {
+                m_logger->error(fmt::format("curl_multi_poll error {}", mc));
+                restartMultiStack();
+            }
         }
 
         handleMultiStackMessages();
@@ -141,6 +156,8 @@ void CurlMultiAsync::handleMultiStackMessages()
 
             if(asyncTransfer)
                 asyncTransfer->_processResponse(CURL_DONE, curlMessage->data.result);
+            else
+                m_logger->debug(fmt::format("transfer missing {}", curlMessage->easy_handle));
 
             curl_multi_remove_handle(m_multiHandle, curlMessage->easy_handle);
             // WARNING: CURLMsg *curlMessage is no longer valid after curl_multi_remove_handle()
