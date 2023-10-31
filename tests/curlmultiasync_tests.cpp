@@ -42,6 +42,7 @@ TEST(CurlMultiAsync, cancelAllTransfers)
     });
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -82,6 +83,7 @@ TEST(CurlMultiAsync, cancelTransfer)
     });
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));

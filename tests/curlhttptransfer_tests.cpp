@@ -41,6 +41,7 @@ TEST(CurlAsyncTransfer, SslError)
     transfer->setVerifySslCertificates(false);
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -78,6 +79,7 @@ TEST(CurlAsyncTransfer, Get)
     transfer->setUrl(requestUrl);
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -131,6 +133,7 @@ TEST(CurlAsyncTransfer, Post)
     transfer->setPostData(content.c_str());
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -192,6 +195,7 @@ TEST(CurlAsyncTransfer, PostCopyData)
     content.clear();
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -260,6 +264,7 @@ TEST(CurlAsyncTransfer, PostFile)
     transfer->setHeader("Content-Type", "application/bin");
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -312,6 +317,7 @@ TEST(CurlAsyncTransfer, OutputToFile)
     transfer->setOutputFilename(filename);
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -364,6 +370,7 @@ TEST(CurlAsyncTransfer, ProgressTimeout)
     });
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 
@@ -403,6 +410,7 @@ TEST(CurlAsyncTransfer, MaxTransferDuration)
     });
 
     curlMultiAsync.performTransfer(transfer);
+    EXPECT_TRUE(curlMultiAsync.waitForStarted(1000));
     EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::RUNNING);
     curlMultiAsync.waitForCompletion();
 

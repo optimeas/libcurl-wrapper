@@ -31,60 +31,54 @@ CurlMultiAsync::~CurlMultiAsync()
 
 void CurlMultiAsync::performTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
-    if(m_traceConfiguration)
-        m_traceConfiguration->configureTracing(transfer);
+    const std::lock_guard<std::mutex> lock(m_queueMutex);
+    m_incomingTransfers.push(transfer);
 
-    transfer->_prepareTransfer();
-
-    const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
-    CURLMcode mc = curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
-    if(mc != 0)
-    {
-        m_logger->error(fmt::format("curl_multi_add_handle error {}", mc));
-        transfer->_processResponse(CANCELED, CURL_LAST);
-        return;
-    }
-
-    m_runningTransfers([&](auto &vec)
-    {
-        vec.emplace_back(std::move(transfer));
-    });
+    // Wake up a blocking curl_multi_poll() call
+    // This is the ONLY function on CURLM handles, that is safe to call concurrently from another thread (or even multiple threads)
+    curl_multi_wakeup(m_multiHandle);
 }
 
 void CurlMultiAsync::cancelTransfer(std::shared_ptr<CurlAsyncTransfer> transfer)
 {
-    removeTransferFromRunningTransfers(transfer->curl().handle);
-    transfer->_processResponse(CANCELED, CURL_LAST);
-    const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
-    curl_multi_remove_handle(m_multiHandle, transfer->curl().handle);
+    const std::lock_guard<std::mutex> lock(m_queueMutex);
+    m_eleminatingTransfers.push(transfer);
+
+    // Wake up a blocking curl_multi_poll() call
+    // This is the ONLY function on CURLM handles, that is safe to call concurrently from another thread (or even multiple threads)
+    curl_multi_wakeup(m_multiHandle);
 }
 
 void CurlMultiAsync::cancelAllTransfers()
 {
-    m_runningTransfers([&](auto &vec)
-    {
-        const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
-
-        auto transferIterator = vec.begin();
-        while(transferIterator != vec.end())
-        {
-            (*transferIterator)->_processResponse(CANCELED, CURL_LAST);
-            curl_multi_remove_handle(m_multiHandle, (*transferIterator)->curl().handle);
-            transferIterator = vec.erase(transferIterator); // erase will increment the iterator
-        }
-    });
+    m_cancelAllTransfers = true;
 }
 
 void CurlMultiAsync::waitForCompletion()
 {
     for(;;)
     {
-        int runningTransfers = m_runningTransfers([&](auto &vec){ return vec.size();});
-        if(runningTransfers == 0)
+        if(m_incomingTransfers.empty() && m_runningTransfers.empty()) // TODO: do we need a mutex here?
             return;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+}
+
+bool CurlMultiAsync::waitForStarted(uint32_t timeoutMs)
+{
+    uint32_t elapsedMs = 0;
+
+    while(elapsedMs < timeoutMs)
+    {
+        if(!m_runningTransfers.empty()) // TODO: do we need a mutex here?
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        elapsedMs += 100;
+    }
+
+    return false;
 }
 
 void CurlMultiAsync::threadedFunction()
@@ -93,8 +87,9 @@ void CurlMultiAsync::threadedFunction()
     {
         try
         {
-            int runningTransfers = m_runningTransfers([&](auto &vec){ return vec.size();});
-            if(runningTransfers > 0)
+            if(m_runningTransfers.empty())
+                handleQueues();
+            else
                 handleMultiStackTransfers();
         }
         catch(std::exception& e)
@@ -112,14 +107,58 @@ void CurlMultiAsync::threadedFunction()
     m_logger->debug("thread finished");
 }
 
+void CurlMultiAsync::handleQueues()
+{
+    std::shared_ptr<CurlAsyncTransfer> transfer;
+
+    while(transfer = getNextIncomingTransfer())
+    {
+        if(m_traceConfiguration)
+            m_traceConfiguration->configureTracing(transfer);
+
+        transfer->_prepareTransfer();
+        CURLMcode mc = curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
+        if(mc != 0)
+        {
+            m_logger->error(fmt::format("curl_multi_add_handle error {}", mc));
+            transfer->_processResponse(CANCELED, CURL_LAST);
+            return;
+        }
+
+        m_runningTransfers.emplace_back(std::move(transfer));
+    }
+
+    while(transfer = getNextEleminatingTransfer())
+    {
+        removeTransferFromRunningTransfers(transfer->curl().handle);
+        transfer->_processResponse(CANCELED, CURL_LAST);
+        curl_multi_remove_handle(m_multiHandle, transfer->curl().handle);
+    }
+
+    if(m_cancelAllTransfers)
+    {
+        m_cancelAllTransfers = false;
+
+        auto transferIterator = m_runningTransfers.begin();
+        while(transferIterator != m_runningTransfers.end())
+        {
+            (*transferIterator)->_processResponse(CANCELED, CURL_LAST);
+            curl_multi_remove_handle(m_multiHandle, (*transferIterator)->curl().handle);
+            transferIterator = m_runningTransfers.erase(transferIterator); // erase will increment the iterator
+        }
+    }
+}
+
 void CurlMultiAsync::handleMultiStackTransfers()
 {
     int transfersRunning = 1;
     while(transfersRunning)
     {
+        handleQueues();
+
         CURLMcode mc;
         {
-            const std::lock_guard<std::mutex> lock(m_multiPerformMutex);
+            const std::lock_guard<std::mutex> lock(m_queueMutex);
 
             mc = curl_multi_perform(m_multiHandle, &transfersRunning);
             if(mc != 0)
@@ -190,28 +229,51 @@ void CurlMultiAsync::restartMultiStack()
     std::exit(-123);
 }
 
+std::shared_ptr<CurlAsyncTransfer> CurlMultiAsync::getNextIncomingTransfer()
+{
+    std::shared_ptr<CurlAsyncTransfer> transfer;
+
+    const std::lock_guard<std::mutex> lock(m_queueMutex);
+    if(m_incomingTransfers.empty())
+        return transfer;
+
+    transfer = m_incomingTransfers.front();
+    m_incomingTransfers.pop();
+    return transfer;
+}
+
+std::shared_ptr<CurlAsyncTransfer> CurlMultiAsync::getNextEleminatingTransfer()
+{
+    std::shared_ptr<CurlAsyncTransfer> transfer;
+
+    const std::lock_guard<std::mutex> lock(m_queueMutex);
+    if(m_eleminatingTransfers.empty())
+        return transfer;
+
+    transfer = m_eleminatingTransfers.front();
+    m_eleminatingTransfers.pop();
+    return transfer;
+}
+
 std::shared_ptr<CurlAsyncTransfer> CurlMultiAsync::removeTransferFromRunningTransfers(CURL *transferHandle)
 {
-    return m_runningTransfers([&](auto &vec)
-    {
-        std::shared_ptr<CurlAsyncTransfer> transfer;
+    std::shared_ptr<CurlAsyncTransfer> transfer;
 
-        auto iter = std::find_if(vec.begin(), vec.end(), [&transferHandle](const std::shared_ptr<CurlAsyncTransfer> &entry)
+    auto iter = std::find_if(m_runningTransfers.begin(), m_runningTransfers.end(), [&transferHandle](const std::shared_ptr<CurlAsyncTransfer> &entry)
         {
             return entry->curl().handle == transferHandle;
         }
-        );
+    );
 
-        if(iter != vec.end())
-        {
-            transfer = *iter;
-            vec.erase(iter);
-        }
-        else
-            m_logger->error(fmt::format("failed to find matching AsyncTransfer object for handle {}", transferHandle));
+    if(iter != m_runningTransfers.end())
+    {
+        transfer = *iter;
+        m_runningTransfers.erase(iter);
+    }
+    else
+        m_logger->error(fmt::format("failed to find matching AsyncTransfer object for handle {}", transferHandle));
 
-        return transfer;
-    });
+    return transfer;
 }
 
 void CurlMultiAsync::setTraceConfiguration(std::shared_ptr<TraceConfigurationInterface> newTraceConfiguration)

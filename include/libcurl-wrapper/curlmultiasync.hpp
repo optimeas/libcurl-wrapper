@@ -4,12 +4,12 @@
 #include "tracing.hpp"
 
 #include "cpp-utils/logging.hpp"
-#include "cpp-utils/monitor.hpp"
 
 #include <atomic>
 #include <thread>
 #include <memory>
 #include <mutex>
+#include <queue>
 
 namespace curl
 {
@@ -25,15 +25,20 @@ public:
     void cancelAllTransfers();
 
     void waitForCompletion();
+    bool waitForStarted(uint32_t timeoutMs);
 
     void setTraceConfiguration(std::shared_ptr<TraceConfigurationInterface> newTraceConfiguration);
 
 private:
     void threadedFunction(void);
 
+    void handleQueues();
     void handleMultiStackTransfers();
     void handleMultiStackMessages();
     void restartMultiStack();
+
+    std::shared_ptr<CurlAsyncTransfer> getNextIncomingTransfer();
+    std::shared_ptr<CurlAsyncTransfer> getNextEleminatingTransfer();
 
     std::shared_ptr<CurlAsyncTransfer> removeTransferFromRunningTransfers(CURL* transferHandle);
 
@@ -41,9 +46,13 @@ private:
     std::atomic<bool> m_threadKeepRunning{true};
     std::unique_ptr<std::thread> m_thread;
     CURLM *m_multiHandle{nullptr};
-    std::mutex m_multiPerformMutex; // protects the curl_multi_perform() call
 
-    cu::Monitor<std::vector<std::shared_ptr<CurlAsyncTransfer>>> m_runningTransfers;
+    std::mutex m_queueMutex;
+    std::queue<std::shared_ptr<CurlAsyncTransfer>> m_incomingTransfers;
+    std::queue<std::shared_ptr<CurlAsyncTransfer>> m_eleminatingTransfers;
+    std::atomic_bool m_cancelAllTransfers{false};
+
+    std::vector<std::shared_ptr<CurlAsyncTransfer>> m_runningTransfers;
     std::shared_ptr<TraceConfigurationInterface> m_traceConfiguration;
 
 };
