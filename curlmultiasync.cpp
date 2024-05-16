@@ -111,7 +111,7 @@ void CurlMultiAsync::handleQueues()
 {
     std::shared_ptr<CurlAsyncTransfer> transfer;
 
-    while(transfer = getNextIncomingTransfer())
+    while((transfer = getNextIncomingTransfer()))
     {
         if(m_traceConfiguration)
             m_traceConfiguration->configureTracing(transfer);
@@ -120,7 +120,7 @@ void CurlMultiAsync::handleQueues()
         CURLMcode mc = curl_multi_add_handle(m_multiHandle, transfer->curl().handle);
         if(mc != 0)
         {
-            m_logger->error(fmt::format("curl_multi_add_handle error {}", mc));
+            m_logger->error(fmt::format("curl_multi_add_handle error {}", static_cast<int>(mc)));
             transfer->_processResponse(CANCELED, CURL_LAST);
             return;
         }
@@ -128,7 +128,7 @@ void CurlMultiAsync::handleQueues()
         m_runningTransfers.emplace_back(std::move(transfer));
     }
 
-    while(transfer = getNextEleminatingTransfer())
+    while((transfer = getNextEleminatingTransfer()))
     {
         removeTransferFromRunningTransfers(transfer->curl().handle);
         transfer->_processResponse(CANCELED, CURL_LAST);
@@ -163,7 +163,7 @@ void CurlMultiAsync::handleMultiStackTransfers()
             mc = curl_multi_perform(m_multiHandle, &transfersRunning);
             if(mc != 0)
             {
-                m_logger->error(fmt::format("curl_multi_poll error {}", mc));
+                m_logger->error(fmt::format("curl_multi_poll error {}", static_cast<int>(mc)));
                 restartMultiStack();
             }
         }
@@ -175,7 +175,7 @@ void CurlMultiAsync::handleMultiStackTransfers()
             mc = curl_multi_poll(m_multiHandle, NULL, 0, 1000, NULL);
             if(mc != 0)
             {
-                m_logger->error(fmt::format("curl_multi_poll error {}", mc));
+                m_logger->error(fmt::format("curl_multi_poll error {}", static_cast<int>(mc)));
                 restartMultiStack();
             }
         }
@@ -204,7 +204,7 @@ void CurlMultiAsync::handleMultiStackMessages()
         else
         {
             // Until now, there are no other msg types defined in libcurl
-            m_logger->warning(fmt::format("got unknown message {} from handle {}", curlMessage->msg, curlMessage->easy_handle));
+            m_logger->warning(fmt::format("got unknown message {} from handle {}", static_cast<int>(curlMessage->msg), curlMessage->easy_handle));
         }
     }
 }
