@@ -2,6 +2,8 @@
 
 #include <fmt/core.h>
 
+#include <algorithm>
+
 namespace curl
 {
 
