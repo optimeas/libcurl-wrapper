@@ -36,7 +36,7 @@ TEST(CurlMultiAsync, cancelAllTransfers)
     std::string requestUrl = "http://127.0.0.1:" + std::to_string(port) + url;
     transfer->setUrl(requestUrl);
 
-    transfer->setTransferCallback([&](curl::CurlAsyncTransfer *transfer)
+    transfer->setTransferCallback([&](const curl::CurlAsyncTransfer *transfer)
     {
         EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::CANCELED);
     });
@@ -77,7 +77,7 @@ TEST(CurlMultiAsync, cancelTransfer)
     std::string requestUrl = "http://127.0.0.1:" + std::to_string(port) + url;
     transfer->setUrl(requestUrl);
 
-    transfer->setTransferCallback([&](curl::CurlAsyncTransfer *transfer)
+    transfer->setTransferCallback([&](const curl::CurlAsyncTransfer *transfer)
     {
         EXPECT_EQ(transfer->asyncResult(), curl::AsyncResult::CANCELED);
     });

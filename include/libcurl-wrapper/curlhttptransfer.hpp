@@ -9,9 +9,9 @@ class CurlHttpTransfer : public CurlAsyncTransfer
 {
 public:
     explicit CurlHttpTransfer(const cu::Logger& logger);
-    virtual ~CurlHttpTransfer() = default; // Prevent undefined behavior when used as base class and delete per base class pointer
+    virtual ~CurlHttpTransfer() override = default; // Prevent undefined behavior when used as base class and delete per base class pointer
 
-    std::string responseHeader(std::string headerName);
+    std::string responseHeader(const std::string &headerName);
     std::unordered_map<std::string, std::string> &responseHeaders();
     std::vector<char> &responseData();
     void setOutputFilename(const std::string& fileNameWithPath);
@@ -28,9 +28,9 @@ public:
     void setFollowRedirects(bool newFollowRedirects);
 
 private:
-    static size_t staticOnWriteCallback(char *ptr, size_t size, size_t nmemb, void *token);
+    static size_t staticOnWriteCallback(const char *ptr, size_t size, size_t nmemb, void *token);
     void onWriteCallback(const char *ptr, size_t realsize);
-    static size_t staticOnHeaderCallback(char *buffer, size_t size, size_t nitems, void *token);
+    static size_t staticOnHeaderCallback(const char *buffer, size_t size, size_t nitems, void *token);
     void onHeaderCallback(const char *buffer, size_t realsize);
 
     std::unordered_map<std::string, std::string> m_responseHeaders;

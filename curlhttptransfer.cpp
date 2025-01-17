@@ -14,7 +14,7 @@ CurlHttpTransfer::CurlHttpTransfer(const cu::Logger &logger)
 
 }
 
-std::string CurlHttpTransfer::responseHeader(std::string headerName)
+std::string CurlHttpTransfer::responseHeader(const std::string &headerName)
 {
     auto header = cu::simpleCase(headerName);
     try
@@ -149,7 +149,7 @@ void CurlHttpTransfer::processResponse()
     }
 }
 
-size_t CurlHttpTransfer::staticOnWriteCallback(char *ptr, size_t size, size_t nmemb, void *token)
+size_t CurlHttpTransfer::staticOnWriteCallback(const char *ptr, size_t size, size_t nmemb, void *token)
 {
     size_t realsize = size * nmemb;
 
@@ -173,14 +173,16 @@ void CurlHttpTransfer::onWriteCallback(const char *ptr, size_t realsize)
         m_responseData.insert(m_responseData.end(), ptr, ptr + realsize);
 }
 
-size_t CurlHttpTransfer::staticOnHeaderCallback(char *buffer, size_t size, size_t nitems, void *token)
+size_t CurlHttpTransfer::staticOnHeaderCallback(const char *buffer, size_t size, size_t nitems, void *token)
 {
     size_t realsize = size * nitems;
 
     if(token != nullptr)
+    {
         static_cast<CurlHttpTransfer*>(token)->onHeaderCallback(buffer, realsize);
+    }
 
-    return nitems * size;
+    return realsize;
 }
 
 void CurlHttpTransfer::onHeaderCallback(const char *buffer, size_t realsize)
