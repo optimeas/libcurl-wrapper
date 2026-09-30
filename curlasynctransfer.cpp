@@ -214,7 +214,7 @@ size_t CurlAsyncTransfer::onProgressCallback([[maybe_unused]] curl_off_t downloa
 
     if(std::chrono::duration_cast<std::chrono::seconds>(now - m_timepointLastProgress).count() > m_progressTimeout_s)
     {
-        m_logger->error(fmt::format("progress timeout of {} seconds exceeded", m_progressTimeout_s));
+//        m_logger->error(fmt::format("progress timeout of {} seconds exceeded", m_progressTimeout_s));
         m_asyncResult = TIMEOUT;
         return -1;
     }
@@ -223,7 +223,7 @@ size_t CurlAsyncTransfer::onProgressCallback([[maybe_unused]] curl_off_t downloa
     {
         if(std::chrono::duration_cast<std::chrono::seconds>(now - m_timepointTransferBegin).count() > m_maxTransferDuration_s)
         {
-            m_logger->error(fmt::format("max transfer duration of {} seconds exceeded", m_maxTransferDuration_s));
+//            m_logger->error(fmt::format("max transfer duration of {} seconds exceeded", m_maxTransferDuration_s));
             m_asyncResult = TIMEOUT;
             return -1;
         }
